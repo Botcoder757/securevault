@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureVault — {% if page == 'dashboard' %}Dashboard{% elif page == 'users' %}Users{% elif page == 'settings' %}Settings{% endif %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f5f7fa; color: #111827; min-height: 100vh; display: flex; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px; min-height: 100vh; background: #fff;
+      border-right: 1px solid #e5e7eb;
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0;
+      padding: 0;
+    }
+    .sidebar-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar-logo {
+      width: 34px; height: 34px; background: #1d4ed8;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .sidebar-title { font-size: 15px; font-weight: 700; color: #111827; }
+    .sidebar-subtitle { font-size: 11px; color: #9ca3af; }
+    .nav-section { padding: 16px 12px 8px; }
+    .nav-label { font-size: 11px; font-weight: 600; color: #9ca3af; letter-spacing: 0.05em; padding: 0 8px; margin-bottom: 4px; text-transform: uppercase; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 8px;
+      font-size: 14px; font-weight: 500; color: #374151;
+      text-decoration: none; margin-bottom: 2px; transition: all 0.12s;
+    }
+    .nav-item:hover { background: #f3f4f6; color: #111827; }
+    .nav-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-item .badge {
+      margin-left: auto; font-size: 11px; font-weight: 600;
+      background: #fee2e2; color: #dc2626; padding: 2px 7px; border-radius: 10px;
+    }
+    .nav-item .badge.blue { background: #dbeafe; color: #1d4ed8; }
+    .sidebar-footer {
+      margin-top: auto; padding: 16px 12px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .user-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px; border-radius: 8px; background: #f9fafb;
+      border: 1px solid #e5e7eb; margin-bottom: 10px;
+    }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .user-avatar.admin { background: #dcfce7; }
+    .user-avatar.guest { background: #fef9c3; }
+    .user-name { font-size: 13px; font-weight: 600; color: #111827; }
+    .user-role { font-size: 11px; color: #6b7280; }
+    .role-tag {
+      margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+    }
+    .role-tag.admin { background: #dcfce7; color: #16a34a; }
+    .role-tag.guest { background: #fef9c3; color: #ca8a04; }
+    .logout-link {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 10px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; color: #6b7280;
+      text-decoration: none; transition: all 0.12s;
+    }
+    .logout-link:hover { background: #fef2f2; color: #dc2626; }
+
+    /* Main */
+    .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid #e5e7eb;
+      padding: 0 32px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .breadcrumb { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+    .breadcrumb strong { color: #111827; font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-badge {
+      font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+    }
+    .topbar-badge.admin { background: #dcfce7; color: #16a34a; }
+    .topbar-badge.guest { background: #fef9c3; color: #ca8a04; }
+    .content { padding: 32px; flex: 1; }
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    .page-desc { font-size: 14px; color: #6b7280; }
+
+    /* Cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 20px;
+    }
+    .stat-label { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 8px; }
+    .stat-val { font-size: 26px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    .stat-val.green { color: #16a34a; }
+    .stat-val.red { color: #dc2626; }
+    .stat-val.blue { color: #1d4ed8; }
+    .stat-change { font-size: 12px; color: #6b7280; }
+    .stat-change.up { color: #16a34a; }
+    .stat-change.down { color: #dc2626; }
+
+    /* Sections */
+    .section {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;
+    }
+    .section-title { font-size: 15px; font-weight: 600; color: #111827; }
+    .section-action {
+      font-size: 13px; color: #1d4ed8; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+    }
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { color: #6b7280; }
+    .info-val { font-weight: 500; color: #111827; }
+    .info-val.green { color: #16a34a; }
+    .info-val.red { color: #dc2626; }
+    .info-val.mono { font-family: monospace; font-size: 13px; background: #f3f4f6; padding: 2px 8px; border-radius: 4px; }
+
+    /* Vault */
+    .vault-locked {
+      text-align: center; padding: 52px 24px;
+      border: 2px dashed #e5e7eb; border-radius: 10px; background: #fafafa;
+    }
+    .vault-locked-icon { font-size: 40px; margin-bottom: 14px; }
+    .vault-locked h4 { font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+    .vault-locked p { font-size: 13px; color: #6b7280; max-width: 300px; margin: 0 auto; }
+    .flag-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 12px; padding: 32px; text-align: center;
+    }
+    .flag-label { font-size: 11px; color: #16a34a; letter-spacing: 0.1em; margin-bottom: 14px; font-weight: 600; text-transform: uppercase; }
+    .flag-val { font-family: monospace; font-size: 20px; font-weight: 700; color: #15803d; letter-spacing: 1px; }
+
+    /* Users table */
+    .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
+    .table td { padding: 13px 14px; border-bottom: 1px solid #f3f4f6; color: #111827; }
+    .table tr:last-child td { border-bottom: none; }
+    .table tr:hover td { background: #f9fafb; }
+    .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+    .status-pill.active { background: #dcfce7; color: #16a34a; }
+    .status-pill.inactive { background: #f3f4f6; color: #6b7280; }
+    .status-pill.locked { background: #fee2e2; color: #dc2626; }
+    .role-pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+    .role-pill.admin { background: #dbeafe; color: #1d4ed8; }
+    .role-pill.guest { background: #fef9c3; color: #ca8a04; }
+    .role-pill.mod { background: #f3e8ff; color: #7c3aed; }
+
+    /* Settings */
+    .settings-group { margin-bottom: 28px; }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-left { flex: 1; }
+    .settings-name { font-size: 14px; font-weight: 500; color: #111827; margin-bottom: 2px; }
+    .settings-desc { font-size: 12px; color: #9ca3af; }
+    .toggle {
+      width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer;
+      position: relative; transition: background 0.2s;
+    }
+    .toggle.on { background: #1d4ed8; }
+    .toggle.off { background: #d1d5db; }
+    .toggle::after {
+      content: ''; position: absolute; top: 3px;
+      width: 16px; height: 16px; border-radius: 50%; background: white;
+      transition: left 0.2s;
+    }
+    .toggle.on::after { left: 21px; }
+    .toggle.off::after { left: 3px; }
+    .settings-input {
+      padding: 7px 12px; border: 1px solid #d1d5db; border-radius: 7px;
+      font-family: 'Inter', sans-serif; font-size: 13px; color: #111827; width: 180px;
+    }
+    .settings-input:focus { outline: none; border-color: #1d4ed8; }
+    .btn-sm {
+      padding: 7px 14px; border-radius: 7px; font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.12s;
+    }
+    .btn-sm.primary { background: #1d4ed8; color: white; }
+    .btn-sm.primary:hover { background: #1e40af; }
+    .btn-sm.danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-sm.secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+    .alert-info {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #1d4ed8;
+      margin-bottom: 20px; display: flex; align-items: flex-start; gap: 8px;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🔐</div>
+      <div>
+        <div class="sidebar-title">SecureVault</div>
+        <div class="sidebar-subtitle">v3.2.1 — Enterprise</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+        <span class="icon">🏠</span> Dashboard
+      </a>
+      <a href="/users" class="nav-item {% if page == 'users' %}active{% endif %}">
+        <span class="icon">👥</span> Users
+        <span class="badge blue">12</span>
+      </a>
+      <a href="/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
+        <span class="icon">⚙️</span> Settings
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Vault</div>
+      <a href="/dashboard" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+        <span class="icon">🔒</span> Vault Access
+        {% if not is_admin %}<span class="badge">Locked</span>{% endif %}
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar {% if is_admin %}admin{% else %}guest{% endif %}">{% if is_admin %}👑{% else %}👤{% endif %}</div>
+        <div>
+          <div class="user-name">{% if is_admin %}admin{% else %}guest{% endif %}</div>
+          <div class="user-role">{% if is_admin %}Full access{% else %}Limited access{% endif %}</div>
+        </div>
+        <span class="role-tag {% if is_admin %}admin{% else %}guest{% endif %}">{% if is_admin %}Admin{% else %}Guest{% endif %}</span>
+      </div>
+      <a href="/logout" class="logout-link">
+        <span>🚪</span> Sign out
+      </a>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb">
+        SecureVault &rsaquo; <strong>{% if page == 'dashboard' %}Dashboard{% elif page == 'users' %}Users{% elif page == 'settings' %}Settings{% endif %}</strong>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-badge {% if is_admin %}admin{% else %}guest{% endif %}">{% if is_admin %}Administrator{% else %}Guest Session{% endif %}</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      {# ---- DASHBOARD PAGE ---- #}
+      {% if page == 'dashboard' %}
+      <div class="page-header">
+        <div class="page-title">{% if is_admin %}Admin Control Panel{% else %}Dashboard{% endif %}</div>
+        <div class="page-desc">{% if is_admin %}Full system access granted.{% else %}You are browsing as a guest. Some features are restricted.{% endif %}</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Access Level</div>
+          <div class="stat-val {% if is_admin %}green{% else %}red{% endif %}">{% if is_admin %}Admin{% else %}Guest{% endif %}</div>
+          <div class="stat-change">Current session role</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Vault Status</div>
+          <div class="stat-val {% if is_admin %}green{% else %}red{% endif %}">{% if is_admin %}Open{% else %}Locked{% endif %}</div>
+          <div class="stat-change">Requires admin role</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-val blue">12</div>
+          <div class="stat-change up">↑ 2 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Security Score</div>
+          <div class="stat-val {% if is_admin %}green{% else %}red{% endif %}">{% if is_admin %}98%{% else %}12%{% endif %}</div>
+          <div class="stat-change {% if is_admin %}up{% else %}down{% endif %}">{% if is_admin %}↑ Excellent{% else %}↓ Restricted{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">Session Info</div>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Role</span>
+            <span class="info-val mono">{% if is_admin %}admin{% else %}guest{% endif %}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Vault Access</span>
+            <span class="info-val {% if is_admin %}green{% else %}red{% endif %}">{% if is_admin %}Granted{% else %}Denied{% endif %}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Session Type</span>
+            <span class="info-val">{% if is_admin %}Privileged{% else %}Limited{% endif %}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Auth Method</span>
+            <span class="info-val mono">cookie</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Status</span>
+            <span class="info-val green">Active</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">System Status</div>
+          </div>
+          <div class="info-row">
+            <span class="info-key">API Server</span>
+            <span class="info-val green">Online</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Auth Service</span>
+            <span class="info-val green">Online</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Vault Engine</span>
+            <span class="info-val green">Running</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Last Backup</span>
+            <span class="info-val">2h ago</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Version</span>
+            <span class="info-val mono">3.2.1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">🔒 Secured Vault</div>
+        </div>
+        {% if is_admin %}
+        <div class="flag-box">
+          <div class="flag-label">Master Key — Confidential</div>
+          <div class="flag-val">{{ flag }}</div>
+        </div>
+        {% else %}
+        <div class="vault-locked">
+          <div class="vault-locked-icon">🔒</div>
+          <h4>Access Restricted</h4>
+          <p>Administrator credentials required to access vault contents.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {# ---- USERS PAGE ---- #}
+      {% elif page == 'users' %}
+      <div class="page-header">
+        <div class="page-title">User Management</div>
+        <div class="page-desc">All registered accounts on the platform.</div>
+      </div>
+
+      {% if not is_admin %}
+      <div class="alert-info">ℹ️ You are viewing as a guest. User management actions are disabled.</div>
+      {% endif %}
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">All Users (12)</div>
+          {% if is_admin %}<button class="btn-sm primary">+ Add User</button>{% endif %}
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Alice Chen</strong></td>
+              <td>alice@securevault.io</td>
+              <td><span class="role-pill admin">admin</span></td>
+              <td><span class="status-pill active">● Active</span></td>
+              <td>Just now</td>
+            </tr>
+            <tr>
+              <td><strong>Bob Martinez</strong></td>
+              <td>bob@securevault.io</td>
+              <td><span class="role-pill mod">moderator</span></td>
+              <td><span class="status-pill active">● Active</span></td>
+              <td>3 min ago</td>
+            </tr>
+            <tr>
+              <td><strong>Carol Singh</strong></td>
+              <td>carol@securevault.io</td>
+              <td><span class="role-pill guest">guest</span></td>
+              <td><span class="status-pill active">● Active</span></td>
+              <td>12 min ago</td>
+            </tr>
+            <tr>
+              <td><strong>David Kim</strong></td>
+              <td>david@securevault.io</td>
+              <td><span class="role-pill guest">guest</span></td>
+              <td><span class="status-pill inactive">○ Inactive</span></td>
+              <td>2 days ago</td>
+            </tr>
+            <tr>
+              <td><strong>Eva Rossi</strong></td>
+              <td>eva@securevault.io</td>
+              <td><span class="role-pill mod">moderator</span></td>
+              <td><span class="status-pill locked">✕ Locked</span></td>
+              <td>5 days ago</td>
+            </tr>
+            <tr>
+              <td><strong>Frank Okafor</strong></td>
+              <td>frank@securevault.io</td>
+              <td><span class="role-pill guest">guest</span></td>
+              <td><span class="status-pill active">● Active</span></td>
+              <td>1 hr ago</td>
+            </tr>
+            <tr>
+              <td><strong>Grace Liu</strong></td>
+              <td>grace@securevault.io</td>
+              <td><span class="role-pill admin">admin</span></td>
+              <td><span class="status-pill inactive">○ Inactive</span></td>
+              <td>1 week ago</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {# ---- SETTINGS PAGE ---- #}
+      {% elif page == 'settings' %}
+      <div class="page-header">
+        <div class="page-title">Settings</div>
+        <div class="page-desc">Platform configuration and preferences.</div>
+      </div>
+
+      {% if not is_admin %}
+      <div class="alert-info">ℹ️ Settings are read-only for guest sessions. Sign in as an administrator to make changes.</div>
+      {% endif %}
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Security</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Two-factor authentication</div>
+            <div class="settings-desc">Require 2FA for all admin accounts</div>
+          </div>
+          <button class="toggle on" onclick="if(this.classList.contains('on')){this.classList.replace('on','off')}else{this.classList.replace('off','on')}"></button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Session timeout</div>
+            <div class="settings-desc">Automatically log out inactive sessions</div>
+          </div>
+          <input class="settings-input" value="30 minutes" {% if not is_admin %}disabled{% endif %}>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Guest access</div>
+            <div class="settings-desc">Allow unauthenticated users to browse</div>
+          </div>
+          <button class="toggle on" onclick="if(this.classList.contains('on')){this.classList.replace('on','off')}else{this.classList.replace('off','on')}"></button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Vault encryption</div>
+            <div class="settings-desc">AES-256 encryption for stored secrets</div>
+          </div>
+          <button class="toggle on"></button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Platform</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Platform name</div>
+            <div class="settings-desc">Displayed in the browser title and navbar</div>
+          </div>
+          <input class="settings-input" value="SecureVault" {% if not is_admin %}disabled{% endif %}>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Maintenance mode</div>
+            <div class="settings-desc">Take the platform offline for updates</div>
+          </div>
+          <button class="toggle off" onclick="if(this.classList.contains('on')){this.classList.replace('on','off')}else{this.classList.replace('off','on')}"></button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Audit logging</div>
+            <div class="settings-desc">Log all user actions to the audit trail</div>
+          </div>
+          <button class="toggle on"></button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Danger Zone</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Reset all sessions</div>
+            <div class="settings-desc">Force all users to log in again</div>
+          </div>
+          <button class="btn-sm danger" {% if not is_admin %}disabled{% endif %}>Reset Sessions</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-left">
+            <div class="settings-name">Wipe vault</div>
+            <div class="settings-desc">Permanently delete all vault contents</div>
+          </div>
+          <button class="btn-sm danger" {% if not is_admin %}disabled{% endif %}>Wipe Vault</button>
+        </div>
+      </div>
+
+      {% endif %}
+
+    </div>
+  </div>
+</body>
+</html>
